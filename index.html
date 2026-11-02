@@ -75,7 +75,7 @@
 
         <!-- Sidebar Footer / Version LUDI-0.1 -->
         <div class="pt-4 border-t border-neutral-800/80 space-y-3">
-            <button onclick="syncWithGoogleDrive()" class="w-full bg-neutral-900 hover:bg-neutral-800 text-neutral-200 text-xs py-2.5 px-3 rounded-xl border border-neutral-700 transition flex items-center justify-center gap-2 font-medium">
+            <button onclick="()" class="w-full bg-neutral-900 hover:bg-neutral-800 text-neutral-200 text-xs py-2.5 px-3 rounded-xl border border-neutral-700 transition flex items-center justify-center gap-2 font-medium">
                 <i class="fa-solid fa-sync text-brand-500" id="syncIcon"></i> Sincronizar Drive
             </button>
             <div class="flex items-center justify-between text-[11px] text-neutral-500 font-mono px-1">
@@ -339,17 +339,40 @@
             syncWithGoogleDrive();
         };
 
-        async function syncWithGoogleDrive() {
-            const icon = document.getElementById('syncIcon');
-            if (icon) icon.classList.add('fa-spin');
-            showToast('Sincronizando con Google Drive...', 'info');
+       async function syncWithGoogleDrive() {
+    const icon = document.getElementById('syncIcon');
+    if (icon) icon.classList.add('fa-spin');
+    showToast('Sincronizando con Google Drive...', 'info');
 
-            try {
-                const response = await fetch(API_URL);
-                const data = await response.json();
-                if (Array.isArray(data) && data.length > 0) {
-                    inventory = data;
-                    showToast('¡Sincronizado con Google Drive exitosamente!', 'success');
+    try {
+        const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(API_URL);
+        const response = await fetch(proxyUrl);
+        const data = await response.json();
+        
+        if (Array.isArray(data) && data.length > 0) {
+            inventory = data;
+            showToast('¡Sincronizado con Google Drive exitosamente!', 'success');
+        } else {
+            loadFallback();
+        }
+    } catch (error) {
+        try {
+            const directRes = await fetch(API_URL);
+            const directData = await directRes.json();
+            if (Array.isArray(directData) && directData.length > 0) {
+                inventory = directData;
+                showToast('¡Sincronizado con Google Drive exitosamente!', 'success');
+            } else {
+                loadFallback();
+            }
+        } catch (e) {
+            showToast('Modo local activo', 'error');
+            loadFallback();
+        }
+    }
+    if (icon) icon.classList.remove('fa-spin');
+    renderAll();
+}
                 } else {
                     loadFallback();
                 }
