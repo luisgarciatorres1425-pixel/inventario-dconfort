@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Inventario - Colchones & Muebles D'CONFORT (LUDI-0.1)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 500: '#ef4444', 600: '#dc2626', 700: '#b91c1c', 900: '#7f1d1d' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .logo-font { font-family: 'Montserrat', sans-serif; }
+        .brand-logo-box {
+            border: 2px solid #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0a0a0a; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #dc2626; border-radius: 4px; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-in-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="h-full text-slate-100 bg-neutral-950 flex flex-col md:flex-row min-h-screen selection:bg-brand-600 selection:text-white">
+
+    <!-- SIDEBAR VERTICAL -->
+    <aside class="w-full md:w-64 bg-black/95 border-r border-neutral-800 flex flex-col justify-between p-5 z-40 sticky top-0 md:h-screen">
+        <div>
+            <!-- Logo Oficial D'CONFORT -->
+            <div class="flex items-center justify-center py-4 cursor-pointer mb-6" onclick="switchTab('dashboard')">
+                <div class="bg-black px-4 py-2 brand-logo-box flex flex-col items-center justify-center w-full">
+                    <span class="text-[9px] font-extrabold tracking-widest text-white uppercase logo-font leading-none">
+                        COLCHONES <span class="text-brand-600">&</span> MUEBLES
+                    </span>
+                    <div class="text-xl font-black tracking-tighter logo-font leading-none mt-1 flex items-center">
+                        <span class="text-brand-600">D'</span><span class="text-white">CONFORT</span>
+                    </div>
+                    <div class="w-full h-0.5 bg-brand-600 rounded-full mt-1"></div>
+                </div>
+            </div>
+
+            <!-- Vertical Navigation -->
+            <nav class="space-y-1.5">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full bg-brand-600 text-white px-4 py-3 rounded-xl text-sm font-bold transition flex items-center gap-3 shadow-lg shadow-brand-900/50">
+                    <i class="fa-solid fa-chart-pie text-base w-5"></i> Dashboard
+                </button>
+                <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-btn w-full text-neutral-300 hover:bg-neutral-900 hover:text-white px-4 py-3 rounded-xl text-sm font-semibold transition flex items-center gap-3">
+                    <i class="fa-solid fa-boxes-stacked text-base w-5"></i> Inventario Taller
+                </button>
+                <button onclick="switchTab('movements')" id="nav-movements" class="nav-btn w-full text-neutral-300 hover:bg-neutral-900 hover:text-white px-4 py-3 rounded-xl text-sm font-semibold transition flex items-center gap-3">
+                    <i class="fa-solid fa-right-left text-base w-5"></i> Salidas / Auditoría
+                </button>
+            </nav>
+        </div>
+
+        <!-- Sidebar Footer / Version LUDI-0.1 -->
+        <div class="pt-4 border-t border-neutral-800/80 space-y-3">
+            <button onclick="syncWithGoogleDrive()" class="w-full bg-neutral-900 hover:bg-neutral-800 text-neutral-200 text-xs py-2.5 px-3 rounded-xl border border-neutral-700 transition flex items-center justify-center gap-2 font-medium">
+                <i class="fa-solid fa-sync text-brand-500" id="syncIcon"></i> Sincronizar Drive
+            </button>
+            <div class="flex items-center justify-between text-[11px] text-neutral-500 font-mono px-1">
+                <span>D'CONFORT</span>
+                <span class="text-brand-500 font-bold">LUDI-0.1</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTAINER -->
+    <div class="flex-grow flex flex-col min-h-screen overflow-x-hidden">
+        
+        <!-- TOPBAR MOBILE / ACTIONS -->
+        <header class="bg-black/90 backdrop-blur border-b border-neutral-800 px-6 py-4 flex justify-between items-center sticky top-0 z-30">
+            <h1 class="font-bold text-white text-base md:text-lg flex items-center gap-2">
+                <i class="fa-solid fa-warehouse text-brand-500"></i> Sistema de Control de Inventario
+            </h1>
+            <button onclick="openModal('movementModal')" class="bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-500 hover:to-brand-600 text-white text-xs sm:text-sm px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-brand-900/50">
+                <i class="fa-solid fa-key text-yellow-300"></i> <span>Registrar con PIN</span>
+            </button>
+        </header>
+
+        <!-- CONTENT AREA -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+            <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm"></div>
+
+            <!-- DASHBOARD TAB -->
+            <section id="tab-dashboard" class="tab-content space-y-6">
+                <div class="bg-gradient-to-r from-neutral-900 via-neutral-900 to-brand-950/40 p-6 rounded-2xl border border-neutral-800 shadow-xl flex justify-between items-center">
+                    <div>
+                        <span class="bg-brand-950 text-brand-400 border border-brand-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Conectado a Google Drive</span>
+                        <h2 class="text-2xl sm:text-3xl font-black text-white mt-2">Colchones & Muebles D'CONFORT</h2>
+                        <p class="text-neutral-400 text-sm mt-1">Control interactivo de tableros RH, madecantos, herrajes y consumibles de taller.</p>
+                    </div>
+                    <button onclick="openModal('itemModal')" class="hidden sm:flex bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm px-4 py-2.5 rounded-xl transition shadow-lg items-center gap-2">
+                        <i class="fa-solid fa-plus-circle"></i> Nuevo Insumo
+                    </button>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="bg-neutral-900 p-5 rounded-2xl border border-neutral-800 flex justify-between items-center shadow-lg">
+                        <div>
+                            <p class="text-xs font-bold text-neutral-400 uppercase tracking-wider">Total Insumos</p>
+                            <h3 id="kpi-total-items" class="text-3xl font-black text-white mt-1">0</h3>
+                        </div>
+                        <div class="w-14 h-14 bg-neutral-800 rounded-2xl flex items-center justify-center text-brand-500 text-2xl shadow-inner"><i class="fa-solid fa-warehouse"></i></div>
+                    </div>
+                    <div class="bg-neutral-900 p-5 rounded-2xl border border-neutral-800 flex justify-between items-center shadow-lg">
+                        <div>
+                            <p class="text-xs font-bold text-neutral-400 uppercase tracking-wider">Stock Disponible Total</p>
+                            <h3 id="kpi-total-stock" class="text-3xl font-black text-emerald-400 mt-1">0</h3>
+                        </div>
+                        <div class="w-14 h-14 bg-neutral-800 rounded-2xl flex items-center justify-center text-emerald-400 text-2xl shadow-inner"><i class="fa-solid fa-cubes"></i></div>
+                    </div>
+                    <div class="bg-neutral-900 p-5 rounded-2xl border border-neutral-800 flex justify-between items-center shadow-lg">
+                        <div>
+                            <p class="text-xs font-bold text-neutral-400 uppercase tracking-wider">Stock Crítico</p>
+                            <h3 id="kpi-low-stock" class="text-3xl font-black text-brand-500 mt-1">0</h3>
+                        </div>
+                        <div class="w-14 h-14 bg-brand-950 border border-brand-800 rounded-2xl flex items-center justify-center text-brand-500 text-2xl shadow-inner"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-1 bg-neutral-900 p-6 rounded-2xl shadow-xl border border-neutral-800 flex flex-col justify-between">
+                        <h3 class="text-xs font-extrabold text-neutral-300 uppercase tracking-wide mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-brand-500"></i> Distribución por Categoría
+                        </h3>
+                        <div class="relative h-64 flex items-center justify-center">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 bg-neutral-900 p-6 rounded-2xl shadow-xl border border-neutral-800 flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xs font-extrabold text-neutral-300 uppercase tracking-wide flex items-center gap-2">
+                                <i class="fa-solid fa-chart-bar text-brand-500"></i> Top 5 Insumos con Mayor Stock
+                            </h3>
+                            <span class="text-xs bg-brand-950 text-brand-400 border border-brand-800 font-bold px-3 py-1 rounded-full">D'CONFORT</span>
+                        </div>
+                        <div class="relative h-64">
+                            <canvas id="topStockChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- INVENTORY TAB -->
+            <section id="tab-inventory" class="tab-content hidden space-y-5">
+                <div class="bg-neutral-900 p-5 rounded-2xl border border-neutral-800 flex flex-col md:flex-row gap-4 justify-between items-center shadow-xl">
+                    <div class="relative w-full md:w-96">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400"></i>
+                        <input type="text" id="searchInput" placeholder="Buscar material o código..." oninput="filterInventory()" class="w-full pl-10 pr-4 py-2.5 bg-neutral-950 border border-neutral-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <button onclick="openModal('itemModal')" class="w-full md:w-auto bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Nuevo Insumo
+                    </button>
+                </div>
+
+                <div class="bg-neutral-900 rounded-2xl border border-neutral-800 overflow-hidden shadow-xl">
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left text-sm text-neutral-300">
+                            <thead class="bg-black text-neutral-300 font-bold uppercase text-xs border-b border-neutral-800 tracking-wider">
+                                <tr>
+                                    <th class="p-4">Material</th>
+                                    <th class="p-4">Descripción</th>
+                                    <th class="p-4">Categoría</th>
+                                    <th class="p-4 text-center">Disponible</th>
+                                    <th class="p-4 text-center">Mínimo</th>
+                                    <th class="p-4">Unidad</th>
+                                    <th class="p-4">Ubicación</th>
+                                    <th class="p-4 text-center">Acciones (PIN)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventoryTableBody" class="divide-y divide-neutral-800"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MOVEMENTS TAB -->
+            <section id="tab-movements" class="tab-content hidden space-y-5">
+                <div class="bg-neutral-900 p-5 rounded-2xl border border-neutral-800 shadow-xl">
+                    <h2 class="font-bold text-white text-base flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-brand-500"></i> Historial de Salidas y Entradas con PIN
+                    </h2>
+                    <p class="text-xs text-neutral-400 mt-1">Auditoría detallada de movimientos en el taller.</p>
+                </div>
+                <div class="bg-neutral-900 rounded-2xl border border-neutral-800 overflow-hidden shadow-xl">
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left text-sm text-neutral-300">
+                            <thead class="bg-black text-neutral-300 font-bold uppercase text-xs border-b border-neutral-800 tracking-wider">
+                                <tr>
+                                    <th class="p-4">Fecha</th>
+                                    <th class="p-4 text-center">Tipo</th>
+                                    <th class="p-4">Material</th>
+                                    <th class="p-4 text-right">Cantidad</th>
+                                    <th class="p-4">Responsable</th>
+                                    <th class="p-4">Motivo / Proyecto</th>
+                                </tr>
+                            </thead>
+                            <tbody id="movementsTableBody" class="divide-y divide-neutral-800"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL NUEVO MATERIAL -->
+    <div id="itemModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-neutral-900 rounded-2xl shadow-2xl max-w-lg w-full border border-neutral-800 overflow-hidden flex flex-col">
+            <div class="bg-black text-white p-5 flex justify-between items-center border-b border-neutral-800">
+                <h3 class="font-bold text-lg">Agregar Nuevo Insumo D'CONFORT</h3>
+                <button onclick="closeModal('itemModal')" class="text-neutral-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="itemForm" onsubmit="saveNewItem(event)" class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-neutral-300 mb-1">Código / Material *</label>
+                        <input type="text" id="newMaterial" required placeholder="Ej: LAM-RH-15" class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white uppercase font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-neutral-300 mb-1">Categoría *</label>
+                        <select id="newCategory" required class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white">
+                            <option value="Tableros y Placas">Tableros y Placas</option>
+                            <option value="Madecantos">Madecantos</option>
+                            <option value="Herrajes y Correderas">Herrajes y Correderas</option>
+                            <option value="Tornillos y Fijaciones">Tornillos y Fijaciones</option>
+                            <option value="Químicos y Barnices">Químicos y Barnices</option>
+                            <option value="Consumibles e Iluminación">Consumibles e Iluminación</option>
+                            <option value="Otros">Otros</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-neutral-300 mb-1">Descripción *</label>
+                    <input type="text" id="newDesc" required placeholder="Ej: Lámina RH 15mm - Acabado Cedro" class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white">
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-neutral-300 mb-1">Disponible *</label>
+                        <input type="number" id="newDisp" min="0" step="any" required class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-neutral-300 mb-1">Stock Mín. *</label>
+                        <input type="number" id="newMin" min="0" step="any" required class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-neutral-300 mb-1">Unidad *</label>
+                        <input type="text" id="newUnit" required placeholder="Unidad" class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-neutral-300 mb-1">Ubicación</label>
+                    <input type="text" id="newLoc" placeholder="Ej: Rack A" class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white">
+                </div>
+                <div class="pt-4 border-t border-neutral-800 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('itemModal')" class="px-5 py-2.5 bg-neutral-800 text-neutral-300 rounded-xl text-sm font-semibold">Cancelar</button>
+                    <button type="submit" class="px-6 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-bold shadow-lg">Guardar Insumo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL MOVIMIENTO CON PIN -->
+    <div id="movementModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-neutral-900 rounded-2xl shadow-2xl max-w-lg w-full border border-neutral-800 overflow-hidden flex flex-col">
+            <div class="bg-black text-white p-5 flex justify-between items-center border-b border-neutral-800">
+                <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-shield-halved text-brand-500"></i> Registrar con PIN de Seguridad</h3>
+                <button onclick="closeModal('movementModal')" class="text-neutral-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="movementForm" onsubmit="saveMovement(event)" class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-2 p-1.5 bg-neutral-950 rounded-xl border border-neutral-800">
+                    <button type="button" id="btnTypeIn" onclick="setMovementType('IN')" class="py-2.5 text-xs font-bold rounded-lg bg-emerald-600 text-white">ENTRADA</button>
+                    <button type="button" id="btnTypeOut" onclick="setMovementType('OUT')" class="py-2.5 text-xs font-bold rounded-lg text-neutral-400">SALIDA</button>
+                </div>
+                <input type="hidden" id="movType" value="IN">
+                <div>
+                    <label class="block text-xs font-bold text-neutral-300 mb-1">Material *</label>
+                    <select id="movMaterial" required class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white font-medium"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-neutral-300 mb-1">Cantidad *</label>
+                        <input type="number" id="movQuantity" min="0.1" step="any" required class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-neutral-300 mb-1">Responsable *</label>
+                        <input type="text" id="movResponsible" required placeholder="Nombre" class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-neutral-300 mb-1">Proyecto / Motivo *</label>
+                    <input type="text" id="movReason" required placeholder="Ej: Closets Alcobas" class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-brand-400 mb-1">PIN de Seguridad *</label>
+                    <input type="password" id="movPinCode" maxlength="8" required placeholder="••••" class="w-full bg-neutral-950 border border-brand-700 rounded-xl p-3 text-center text-xl font-black text-white tracking-widest focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div class="pt-4 border-t border-neutral-800 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('movementModal')" class="px-5 py-2.5 bg-neutral-800 text-neutral-300 rounded-xl text-sm font-semibold">Cancelar</button>
+                    <button type="submit" class="px-6 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-bold shadow-lg">Autorizar con PIN</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT CONECTADO A GOOGLE APPS SCRIPT -->
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbzOTI654PYWfY7rB-hzKc6fKyBnUuDHvcRzM7WwWM3b2sSszRFQH-ihqFwvNFZwnQeY/exec";
+
+        let inventory = [];
+        let movements = [];
+        let categoryChartInstance = null;
+        let topStockChartInstance = null;
+        const SECURITY_PIN = "1508";
+
+        window.onload = function() {
+            syncWithGoogleDrive();
+        };
+
+        async function syncWithGoogleDrive() {
+            const icon = document.getElementById('syncIcon');
+            if (icon) icon.classList.add('fa-spin');
+            showToast('Sincronizando con Google Drive...', 'info');
+
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    inventory = data;
+                    showToast('¡Sincronizado con Google Drive exitosamente!', 'success');
+                } else {
+                    loadFallback();
+                }
+            } catch (error) {
+                showToast('Modo local activo', 'error');
+                loadFallback();
+            }
+            if (icon) icon.classList.remove('fa-spin');
+            renderAll();
+        }
+
+        function loadFallback() {
+            inventory = [
+                { MATERIAL: 'LAM-RH-15', DESCRIPCION: 'Lámina RH 15mm - Cedro', CATEGORIA: 'Tableros y Placas', UNIDAD: 'Unidad', DISPONIBLE: 18, 'STOCK (MINIMO)': 5, UBICACION: 'Rack A' },
+                { MATERIAL: 'TOR-ESP', DESCRIPCION: 'Tornillo Espaldar 100U', CATEGORIA: 'Tornillos y Fijaciones', UNIDAD: 'Bolsa', DISPONIBLE: 15, 'STOCK (MINIMO)': 5, UBICACION: 'Almacén' }
+            ];
+        }
+
+        async function sendUpdateToDrive(item) {
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: "update", material: item.MATERIAL, disponible: item.DISPONIBLE })
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function renderAll() {
+            renderKPIs();
+            renderInventoryTable();
+            populateMaterialSelect();
+            renderCharts();
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            const activeTab = document.getElementById(`tab-${tabId}`);
+            activeTab.classList.remove('hidden');
+            activeTab.classList.add('animate-fade-in');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-brand-600', 'text-white', 'shadow-lg');
+                btn.classList.add('text-neutral-300');
+            });
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeNav) {
+                activeNav.classList.add('bg-brand-600', 'text-white', 'shadow-lg');
+                activeNav.classList.remove('text-neutral-300');
+            }
+            if (tabId === 'dashboard') setTimeout(() => renderCharts(), 50);
+        }
+
+        function renderKPIs() {
+            document.getElementById('kpi-total-items').textContent = inventory.length;
+            document.getElementById('kpi-total-stock').textContent = inventory.reduce((a, b) => a + Number(b.DISPONIBLE || 0), 0).toLocaleString();
+            document.getElementById('kpi-low-stock').textContent = inventory.filter(i => Number(i.DISPONIBLE || 0) <= Number(i['STOCK (MINIMO)'] || 0)).length;
+        }
+
+        function renderInventoryTable() {
+            const tbody = document.getElementById('inventoryTableBody');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            tbody.innerHTML = '';
+
+            inventory.filter(i => String(i.MATERIAL || '').toLowerCase().includes(search) || String(i.DESCRIPCION || '').toLowerCase().includes(search)).forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-neutral-800/70 border-b border-neutral-800 transition';
+                tr.innerHTML = `
+                    <td class="p-4 font-mono font-bold text-brand-400">${item.MATERIAL || ''}</td>
+                    <td class="p-4 text-white font-medium">${item.DESCRIPCION || ''}</td>
+                    <td class="p-4"><span class="bg-neutral-800 text-neutral-300 px-2.5 py-1 rounded-lg text-xs border border-neutral-700">${item.CATEGORIA || ''}</span></td>
+                    <td class="p-4 text-center font-black text-emerald-400 text-base">${item.DISPONIBLE || 0}</td>
+                    <td class="p-4 text-center text-neutral-400 text-xs font-bold">${item['STOCK (MINIMO)'] || 0}</td>
+                    <td class="p-4 text-neutral-400 text-xs">${item.UNIDAD || ''}</td>
+                    <td class="p-4 text-neutral-400 text-xs"><i class="fa-solid fa-location-dot text-brand-500 mr-1"></i>${item.UBICACION || ''}</td>
+                    <td class="p-4 text-center">
+                        <button onclick="quickMovement('${index}', 'IN')" class="px-2.5 py-1.5 text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 rounded-lg text-xs font-bold mr-1 hover:bg-emerald-900 transition">+ Entrar</button>
+                        <button onclick="quickMovement('${index}', 'OUT')" class="px-2.5 py-1.5 text-brand-400 bg-brand-950/40 border border-brand-800/60 rounded-lg text-xs font-bold hover:bg-brand-900 transition">- Salir</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderCharts() {
+            const categoriesMap = {};
+            inventory.forEach(i => {
+                const cat = i.CATEGORIA || 'Otros';
+                categoriesMap[cat] = (categoriesMap[cat] || 0) + Number(i.DISPONIBLE || 0);
+            });
+
+            const ctxCategory = document.getElementById('categoryChart').getContext('2d');
+            if (categoryChartInstance) categoryChartInstance.destroy();
+            categoryChartInstance = new Chart(ctxCategory, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(categoriesMap),
+                    datasets: [{
+                        data: Object.values(categoriesMap),
+                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#dc2626'],
+                        borderWidth: 2,
+                        borderColor: '#121212'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#d4d4d4', font: { size: 10 } } } } }
+            });
+
+            const sortedTop = [...inventory].sort((a, b) => Number(b.DISPONIBLE || 0) - Number(a.DISPONIBLE || 0)).slice(0, 5);
+            const ctxTop = document.getElementById('topStockChart').getContext('2d');
+            if (topStockChartInstance) topStockChartInstance.destroy();
+            topStockChartInstance = new Chart(ctxTop, {
+                type: 'bar',
+                data: {
+                    labels: sortedTop.map(i => (i.DESCRIPCION || i.MATERIAL).substring(0, 16)),
+                    datasets: [{ data: sortedTop.map(i => Number(i.DISPONIBLE || 0)), backgroundColor: '#3b82f6', borderRadius: 6 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#a3a3a3' } }, x: { ticks: { color: '#a3a3a3' } } } }
+            });
+        }
+
+        function populateMaterialSelect() {
+            const select = document.getElementById('movMaterial');
+            select.innerHTML = '';
+            inventory.forEach((i, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.textContent = `${i.MATERIAL} - ${i.DESCRIPCION} (Disp: ${i.DISPONIBLE})`;
+                select.appendChild(opt);
+            });
+        }
+
+        function setMovementType(type) {
+            document.getElementById('movType').value = type;
+            const btnIn = document.getElementById('btnTypeIn'), btnOut = document.getElementById('btnTypeOut');
+            if (type === 'IN') {
+                btnIn.className = 'py-2.5 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow';
+                btnOut.className = 'py-2.5 text-xs font-bold rounded-lg text-neutral-400 hover:bg-neutral-800';
+            } else {
+                btnOut.className = 'py-2.5 text-xs font-bold rounded-lg bg-brand-600 text-white shadow';
+                btnIn.className = 'py-2.5 text-xs font-bold rounded-lg text-neutral-400 hover:bg-neutral-800';
+            }
+        }
+
+        function quickMovement(index, type) {
+            setMovementType(type);
+            openModal('movementModal');
+            document.getElementById('movMaterial').value = index;
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function saveNewItem(e) {
+            e.preventDefault();
+            const newItem = {
+                MATERIAL: document.getElementById('newMaterial').value.trim().toUpperCase(),
+                CATEGORIA: document.getElementById('newCategory').value,
+                DESCRIPCION: document.getElementById('newDesc').value.trim(),
+                DISPONIBLE: parseFloat(document.getElementById('newDisp').value) || 0,
+                'STOCK (MINIMO)': parseFloat(document.getElementById('newMin').value) || 5,
+                UNIDAD: document.getElementById('newUnit').value.trim(),
+                UBICACION: document.getElementById('newLoc').value.trim()
+            };
+            inventory.push(newItem);
+            renderAll();
+            closeModal('itemModal');
+            showToast('Insumo agregado con éxito', 'success');
+        }
+
+        function saveMovement(e) {
+            e.preventDefault();
+            const pin = document.getElementById('movPinCode').value.trim();
+            if (pin !== SECURITY_PIN) {
+                showToast('PIN de seguridad incorrecto', 'error');
+                document.getElementById('movPinCode').focus();
+                return;
+            }
+
+            const type = document.getElementById('movType').value;
+            const index = document.getElementById('movMaterial').value;
+            const qty = parseFloat(document.getElementById('movQuantity').value) || 0;
+            const item = inventory[index];
+
+            let current = Number(item.DISPONIBLE || 0);
+            if (type === 'OUT' && qty > current) {
+                showToast('Stock insuficiente para la salida', 'error');
+                return;
+            }
+
+            item.DISPONIBLE = type === 'IN' ? current + qty : current - qty;
+            movements.unshift({
+                date: new Date().toLocaleString(),
+                material: item.MATERIAL + ' - ' + item.DESCRIPCION,
+                type,
+                qty,
+                resp: document.getElementById('movResponsible').value,
+                reason: document.getElementById('movReason').value
+            });
+
+            sendUpdateToDrive(item);
+            renderAll();
+            renderMovementsTable();
+            closeModal('movementModal');
+            document.getElementById('movementForm').reset();
+            showToast('¡PIN verificado! Movimiento registrado y sincronizado', 'success');
+        }
+
+        function renderMovementsTable() {
+            const tbody = document.getElementById('movementsTableBody');
+            tbody.innerHTML = '';
+            movements.forEach(m => {
+                const tr = document.createElement('tr');
+                const isEntry = m.type === 'IN';
+                tr.className = 'hover:bg-neutral-800/70 border-b border-neutral-800 transition';
+                tr.innerHTML = `
+                    <td class="p-4 text-xs font-mono text-neutral-300">${m.date}</td>
+                    <td class="p-4 text-center"><span class="px-2.5 py-1 rounded-lg text-xs font-bold ${isEntry ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-brand-950 text-brand-400 border border-brand-800'}">${isEntry ? 'ENTRADA' : 'SALIDA'}</span></td>
+                    <td class="p-4 font-bold text-white">${escapeHtml(m.material)}</td>
+                    <td class="p-4 text-right font-black ${isEntry ? 'text-emerald-400' : 'text-brand-500'}">${isEntry ? '+' : '-'}${m.qty}</td>
+                    <td class="p-4 text-xs font-semibold text-neutral-200">${escapeHtml(m.resp)}</td>
+                    <td class="p-4 text-xs text-neutral-300">${escapeHtml(m.reason)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `p-4 rounded-xl text-xs font-bold shadow-2xl flex items-center gap-3 transition transform ${type === 'success' ? 'bg-emerald-600 text-white' : type === 'error' ? 'bg-brand-600 text-white' : 'bg-neutral-900 text-white border border-brand-600'}`;
+            toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-triangle-exclamation' : 'fa-bell text-brand-500'}"></i> <span>${escapeHtml(msg)}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
