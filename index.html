@@ -75,8 +75,8 @@
 
         <!-- Sidebar Footer / Version LUDI-0.1 -->
         <div class="pt-4 border-t border-neutral-800/80 space-y-3">
-            <button onclick="syncWithGoogleDrive()" class="w-full bg-neutral-900 hover:bg-neutral-800 text-neutral-200 text-xs py-2.5 px-3 rounded-xl border border-neutral-700 transition flex items-center justify-center gap-2 font-medium">
-                <i class="fa-solid fa-sync text-brand-500" id="syncIcon"></i> Sincronizar Drive
+            <button onclick="syncWithCloud()" class="w-full bg-neutral-900 hover:bg-neutral-800 text-neutral-200 text-xs py-2.5 px-3 rounded-xl border border-neutral-700 transition flex items-center justify-center gap-2 font-medium">
+                <i class="fa-solid fa-sync text-brand-500" id="syncIcon"></i> Sincronizar Nube
             </button>
             <div class="flex items-center justify-between text-[11px] text-neutral-500 font-mono px-1">
                 <span>D'CONFORT</span>
@@ -106,7 +106,7 @@
             <section id="tab-dashboard" class="tab-content space-y-6">
                 <div class="bg-gradient-to-r from-neutral-900 via-neutral-900 to-brand-950/40 p-6 rounded-2xl border border-neutral-800 shadow-xl flex justify-between items-center">
                     <div>
-                        <span class="bg-brand-950 text-brand-400 border border-brand-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Conectado a Google Drive</span>
+                        <span class="bg-brand-950 text-brand-400 border border-brand-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Conectado a Nube (Sincronización Automática)</span>
                         <h2 class="text-2xl sm:text-3xl font-black text-white mt-2">Colchones & Muebles D'CONFORT</h2>
                         <p class="text-neutral-400 text-sm mt-1">Control interactivo de tableros RH, madecantos, herrajes y consumibles de taller.</p>
                     </div>
@@ -325,9 +325,10 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT CONECTADO A GOOGLE APPS SCRIPT -->
+    <!-- JAVASCRIPT CON SINCRONIZACIÓN BIDIRECCIONAL -->
     <script>
-        const API_URL = "https://api.npoint.io/1deace99c6cf20d5a752";
+        // PEGA AQUÍ TU ENLACE EXACTO DE NPOINT.IO
+        const API_URL = "https://api.npoint.io/TU_CODIGO_AQUI";
 
         let inventory = [];
         let movements = [];
@@ -336,39 +337,27 @@
         const SECURITY_PIN = "1508";
 
         window.onload = function() {
-            syncWithGoogleDrive();
+            syncWithCloud();
         };
 
-        async function syncWithGoogleDrive() {
+        async function syncWithCloud() {
             const icon = document.getElementById('syncIcon');
             if (icon) icon.classList.add('fa-spin');
-            showToast('Sincronizando con Google Drive...', 'info');
+            showToast('Sincronizando con la nube...', 'info');
 
             try {
-                const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(API_URL);
-                const response = await fetch(proxyUrl);
+                const response = await fetch(API_URL);
                 const data = await response.json();
                 
                 if (Array.isArray(data) && data.length > 0) {
                     inventory = data;
-                    showToast('¡Sincronizado con Google Drive exitosamente!', 'success');
+                    showToast('¡Sincronizado con la nube exitosamente!', 'success');
                 } else {
                     loadFallback();
                 }
             } catch (error) {
-                try {
-                    const directRes = await fetch(API_URL);
-                    const directData = await directRes.json();
-                    if (Array.isArray(directData) && directData.length > 0) {
-                        inventory = directData;
-                        showToast('¡Sincronizado con Google Drive exitosamente!', 'success');
-                    } else {
-                        loadFallback();
-                    }
-                } catch (e) {
-                    showToast('Modo local activo', 'error');
-                    loadFallback();
-                }
+                showToast('Error al conectar con la nube. Modo local activo.', 'error');
+                loadFallback();
             }
             if (icon) icon.classList.remove('fa-spin');
             renderAll();
@@ -376,21 +365,25 @@
 
         function loadFallback() {
             inventory = [
-                { MATERIAL: 'LAM-RH-15', DESCRIPCION: 'Lámina RH 15mm - Cedro', CATEGORIA: 'Tableros y Placas', UNIDAD: 'Unidad', DISPONIBLE: 18, 'STOCK (MINIMO)': 5, UBICACION: 'Rack A' },
-                { MATERIAL: 'TOR-ESP', DESCRIPCION: 'Tornillo Espaldar 100U', CATEGORIA: 'Tornillos y Fijaciones', UNIDAD: 'Bolsa', DISPONIBLE: 15, 'STOCK (MINIMO)': 5, UBICACION: 'Almacén' }
+                { MATERIAL: 'LAM-RH-15', DESCRIPCION: 'Lámina RH 15mm - Cedro', CATEGORIA: 'Tableros y Placas', UNIDAD: 'Unidad', DISPONIBLE: 18, 'STOCK (MINIMO)': 5, UBICACION: 'Rack A' }
             ];
         }
 
-        async function sendUpdateToDrive(item) {
+        async function saveCloudInventory() {
             try {
-                await fetch(API_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
+                const response = await fetch(API_URL, {
+                    method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: "update", material: item.MATERIAL, disponible: item.DISPONIBLE })
+                    body: JSON.stringify(inventory)
                 });
+                if (response.ok) {
+                    showToast('¡Cambios guardados y sincronizados en la nube!', 'success');
+                } else {
+                    showToast('Guardado localmente (Aviso: error de red en nube)', 'error');
+                }
             } catch (e) {
                 console.error(e);
+                showToast('Cambios aplicados localmente', 'info');
             }
         }
 
@@ -532,7 +525,8 @@
             inventory.push(newItem);
             renderAll();
             closeModal('itemModal');
-            showToast('Insumo agregado con éxito', 'success');
+            document.getElementById('itemForm').reset();
+            saveCloudInventory();
         }
 
         function saveMovement(e) {
@@ -565,12 +559,11 @@
                 reason: document.getElementById('movReason').value
             });
 
-            sendUpdateToDrive(item);
             renderAll();
             renderMovementsTable();
             closeModal('movementModal');
             document.getElementById('movementForm').reset();
-            showToast('¡PIN verificado! Movimiento registrado y sincronizado', 'success');
+            saveCloudInventory();
         }
 
         function renderMovementsTable() {
