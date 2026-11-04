@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Inventario - Colchones & Muebles D'CONFORT (LUDI-0.1)</title>
+    <title> Pagina Web - Colchones & Muebles D'CONFORT (LUDI-0.1)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -327,7 +327,6 @@
 
     <!-- JAVASCRIPT CON SINCRONIZACIÓN BIDIRECCIONAL -->
     <script>
-        // PEGA AQUÍ TU ENLACE EXACTO DE NPOINT.IO
         const API_URL = "https://app-dconfort-default-rtdb.asia-southeast1.firebasedatabase.app/inventory.json";
 
         let inventory = [];
@@ -340,45 +339,55 @@
             syncWithCloud();
         };
 
-        // --- NUEVA FUNCIÓN PARA ELIMINAR ---
-async function deleteItem(index) {
-    const pin = prompt("Ingresa el PIN de seguridad (1508) para eliminar este insumo:");
-    if (pin !== "1508") {
-        showToast("PIN incorrecto. Operación cancelada.", "error");
-        return;
-    }
+        // --- FUNCIÓN PARA ELIMINAR CON PIN 1508 ---
+        async function deleteItem(index) {
+            const pin = prompt("Ingresa el PIN de seguridad (1508) para eliminar este insumo:");
+            if (pin !== SECURITY_PIN) {
+                showToast("PIN incorrecto. Operación cancelada.", "error");
+                return;
+            }
 
-    if (confirm("¿Estás seguro de que deseas eliminar este insumo del inventario?")) {
-        inventory.splice(index, 1);
-        await saveCloudInventory();
-        renderAll();
-        showToast("Insumo eliminado exitosamente.", "success");
-    }
-}
+            if (confirm("¿Estás seguro de que deseas eliminar este insumo del inventario?")) {
+                inventory.splice(index, 1);
+                await saveCloudInventory();
+                renderAll();
+                showToast("Insumo eliminado exitosamente.", "success");
+            }
+        }
 
-// --- NUEVA FUNCIÓN PARA EDITAR ---
-async function editItem(index) {
-    const pin = prompt("Ingresa el PIN de seguridad (1508) para editar este insumo:");
-    if (pin !== "1508") {
-        showToast("PIN incorrecto. Operación cancelada.", "error");
-        return;
-    }
+        // --- FUNCIÓN PARA EDITAR CON PIN 1508 ---
+        async function editItem(index) {
+            const pin = prompt("Ingresa el PIN de seguridad (1508) para editar este insumo:");
+            if (pin !== SECURITY_PIN) {
+                showToast("PIN incorrecto. Operación cancelada.", "error");
+                return;
+            }
 
-    const item = inventory[index];
-    
-    const nuevoNombre = prompt("Editar nombre del insumo:", item.nombre || item.name || "");
-    if (nuevoNombre === null) return;
+            const item = inventory[index];
+            
+            const nuevoNombre = prompt("Editar nombre / código del insumo:", item.MATERIAL || item.nombre || "");
+            if (nuevoNombre === null) return;
 
-    const nuevaCantidad = prompt("Editar cantidad:", item.cantidad || item.quantity || 0);
-    if (nuevaCantidad === null) return;
+            const nuevaDesc = prompt("Editar descripción:", item.DESCRIPCION || item.descripcion || "");
+            if (nuevaDesc === null) return;
 
-    inventory[index].nombre = nuevoNombre;
-    inventory[index].cantidad = nuevaCantidad;
+            const nuevaCantidad = prompt("Editar cantidad disponible:", item.DISPONIBLE || item.cantidad || 0);
+            if (nuevaCantidad === null) return;
 
-    await saveCloudInventory();
-    renderAll();
-    showToast("¡Insumo actualizado exitosamente!", "success");
-}
+            // Actualizar campos preservando la estructura del objeto
+            if (inventory[index].MATERIAL !== undefined) {
+                inventory[index].MATERIAL = nuevoNombre;
+                inventory[index].DESCRIPCION = nuevaDesc;
+                inventory[index].DISPONIBLE = nuevaCantidad;
+            } else {
+                inventory[index].nombre = nuevoNombre;
+                inventory[index].cantidad = nuevaCantidad;
+            }
+
+            await saveCloudInventory();
+            renderAll();
+            showToast("¡Insumo actualizado exitosamente!", "success");
+        }
 
         async function syncWithCloud() {
             const icon = document.getElementById('syncIcon');
@@ -404,9 +413,7 @@ async function editItem(index) {
         }
 
         function loadFallback() {
-            inventory = [
-                { MATERIAL: 'LAM-RH-15', DESCRIPCION: 'Lámina RH 15mm - Cedro', CATEGORIA: 'Tableros y Placas', UNIDAD: 'Unidad', DISPONIBLE: 18, 'STOCK (MINIMO)': 5, UBICACION: 'Rack A' }
-            ];
+            inventory = [];
         }
 
         async function saveCloudInventory() {
@@ -458,6 +465,7 @@ async function editItem(index) {
             document.getElementById('kpi-low-stock').textContent = inventory.filter(i => Number(i.DISPONIBLE || 0) <= Number(i['STOCK (MINIMO)'] || 0)).length;
         }
 
+        // --- TABLA DE INVENTARIO CON BOTONES DE EDITAR Y ELIMINAR ---
         function renderInventoryTable() {
             const tbody = document.getElementById('inventoryTableBody');
             const search = document.getElementById('searchInput').value.toLowerCase();
@@ -474,9 +482,11 @@ async function editItem(index) {
                     <td class="p-4 text-center text-neutral-400 text-xs font-bold">${item['STOCK (MINIMO)'] || 0}</td>
                     <td class="p-4 text-neutral-400 text-xs">${item.UNIDAD || ''}</td>
                     <td class="p-4 text-neutral-400 text-xs"><i class="fa-solid fa-location-dot text-brand-500 mr-1"></i>${item.UBICACION || ''}</td>
-                    <td class="p-4 text-center">
-                        <button onclick="quickMovement('${index}', 'IN')" class="px-2.5 py-1.5 text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 rounded-lg text-xs font-bold mr-1 hover:bg-emerald-900 transition">+ Entrar</button>
-                        <button onclick="quickMovement('${index}', 'OUT')" class="px-2.5 py-1.5 text-brand-400 bg-brand-950/40 border border-brand-800/60 rounded-lg text-xs font-bold hover:bg-brand-900 transition">- Salir</button>
+                    <td class="p-4 text-center whitespace-nowrap">
+                        <button onclick="editItem(${index})" class="px-2 py-1.5 text-yellow-400 bg-yellow-950/40 border border-yellow-800/60 rounded-lg text-xs font-bold mr-1 hover:bg-yellow-900 transition" title="Editar Insumo">✏️ Editar</button>
+                        <button onclick="deleteItem(${index})" class="px-2 py-1.5 text-brand-400 bg-brand-950/40 border border-brand-800/60 rounded-lg text-xs font-bold mr-1 hover:bg-brand-900 transition" title="Eliminar Insumo">🗑️ Borrar</button>
+                        <button onclick="quickMovement('${index}', 'IN')" class="px-2 py-1.5 text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 rounded-lg text-xs font-bold mr-1 hover:bg-emerald-900 transition">+ Entrar</button>
+                        <button onclick="quickMovement('${index}', 'OUT')" class="px-2 py-1.5 text-brand-400 bg-brand-950/40 border border-brand-800/60 rounded-lg text-xs font-bold hover:bg-brand-900 transition">- Salir</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -513,131 +523,32 @@ async function editItem(index) {
                 type: 'bar',
                 data: {
                     labels: sortedTop.map(i => (i.DESCRIPCION || i.MATERIAL).substring(0, 16)),
-                    datasets: [{ data: sortedTop.map(i => Number(i.DISPONIBLE || 0)), backgroundColor: '#3b82f6', borderRadius: 6 }]
+                    datasets: [{
+                        label: 'Stock Disponible',
+                        data: sortedTop.map(i => Number(i.DISPONIBLE || 0)),
+                        backgroundColor: '#dc2626',
+                        borderRadius: 8
+                    }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#a3a3a3' } }, x: { ticks: { color: '#a3a3a3' } } } }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#a3a3a3' } }, y: { ticks: { color: '#a3a3a3' } } } }
             });
         }
 
-        function populateMaterialSelect() {
-            const select = document.getElementById('movMaterial');
-            select.innerHTML = '';
-            inventory.forEach((i, idx) => {
-                const opt = document.createElement('option');
-                opt.value = idx;
-                opt.textContent = `${i.MATERIAL} - ${i.DESCRIPCION} (Disp: ${i.DISPONIBLE})`;
-                select.appendChild(opt);
-            });
-        }
-
-        function setMovementType(type) {
-            document.getElementById('movType').value = type;
-            const btnIn = document.getElementById('btnTypeIn'), btnOut = document.getElementById('btnTypeOut');
-            if (type === 'IN') {
-                btnIn.className = 'py-2.5 text-xs font-bold rounded-lg bg-emerald-600 text-white shadow';
-                btnOut.className = 'py-2.5 text-xs font-bold rounded-lg text-neutral-400 hover:bg-neutral-800';
-            } else {
-                btnOut.className = 'py-2.5 text-xs font-bold rounded-lg bg-brand-600 text-white shadow';
-                btnIn.className = 'py-2.5 text-xs font-bold rounded-lg text-neutral-400 hover:bg-neutral-800';
-            }
-        }
-
-        function quickMovement(index, type) {
-            setMovementType(type);
-            openModal('movementModal');
-            document.getElementById('movMaterial').value = index;
-        }
-
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-
-        function saveNewItem(e) {
-            e.preventDefault();
-            const newItem = {
-                MATERIAL: document.getElementById('newMaterial').value.trim().toUpperCase(),
-                CATEGORIA: document.getElementById('newCategory').value,
-                DESCRIPCION: document.getElementById('newDesc').value.trim(),
-                DISPONIBLE: parseFloat(document.getElementById('newDisp').value) || 0,
-                'STOCK (MINIMO)': parseFloat(document.getElementById('newMin').value) || 5,
-                UNIDAD: document.getElementById('newUnit').value.trim(),
-                UBICACION: document.getElementById('newLoc').value.trim()
-            };
-            inventory.push(newItem);
-            renderAll();
-            closeModal('itemModal');
-            document.getElementById('itemForm').reset();
-            saveCloudInventory();
-        }
-
-        function saveMovement(e) {
-            e.preventDefault();
-            const pin = document.getElementById('movPinCode').value.trim();
-            if (pin !== SECURITY_PIN) {
-                showToast('PIN de seguridad incorrecto', 'error');
-                document.getElementById('movPinCode').focus();
-                return;
-            }
-
-            const type = document.getElementById('movType').value;
-            const index = document.getElementById('movMaterial').value;
-            const qty = parseFloat(document.getElementById('movQuantity').value) || 0;
-            const item = inventory[index];
-
-            let current = Number(item.DISPONIBLE || 0);
-            if (type === 'OUT' && qty > current) {
-                showToast('Stock insuficiente para la salida', 'error');
-                return;
-            }
-
-            item.DISPONIBLE = type === 'IN' ? current + qty : current - qty;
-            movements.unshift({
-                date: new Date().toLocaleString(),
-                material: item.MATERIAL + ' - ' + item.DESCRIPCION,
-                type,
-                qty,
-                resp: document.getElementById('movResponsible').value,
-                reason: document.getElementById('movReason').value
-            });
-
-            renderAll();
-            renderMovementsTable();
-            closeModal('movementModal');
-            document.getElementById('movementForm').reset();
-            saveCloudInventory();
-        }
-
-        function renderMovementsTable() {
-            const tbody = document.getElementById('movementsTableBody');
-            tbody.innerHTML = '';
-            movements.forEach(m => {
-                const tr = document.createElement('tr');
-                const isEntry = m.type === 'IN';
-                tr.className = 'hover:bg-neutral-800/70 border-b border-neutral-800 transition';
-                tr.innerHTML = `
-                    <td class="p-4 text-xs font-mono text-neutral-300">${m.date}</td>
-                    <td class="p-4 text-center"><span class="px-2.5 py-1 rounded-lg text-xs font-bold ${isEntry ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-brand-950 text-brand-400 border border-brand-800'}">${isEntry ? 'ENTRADA' : 'SALIDA'}</span></td>
-                    <td class="p-4 font-bold text-white">${escapeHtml(m.material)}</td>
-                    <td class="p-4 text-right font-black ${isEntry ? 'text-emerald-400' : 'text-brand-500'}">${isEntry ? '+' : '-'}${m.qty}</td>
-                    <td class="p-4 text-xs font-semibold text-neutral-200">${escapeHtml(m.resp)}</td>
-                    <td class="p-4 text-xs text-neutral-300">${escapeHtml(m.reason)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function showToast(msg, type = 'info') {
+        function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
-            toast.className = `p-4 rounded-xl text-xs font-bold shadow-2xl flex items-center gap-3 transition transform ${type === 'success' ? 'bg-emerald-600 text-white' : type === 'error' ? 'bg-brand-600 text-white' : 'bg-neutral-900 text-white border border-brand-600'}`;
-            toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-triangle-exclamation' : 'fa-bell text-brand-500'}"></i> <span>${escapeHtml(msg)}</span>`;
+            let bgClass = 'bg-neutral-900 border-neutral-700 text-white';
+            if (type === 'success') bgClass = 'bg-emerald-950 border-emerald-700 text-emerald-200';
+            if (type === 'error') bgClass = 'bg-brand-950 border-brand-700 text-brand-200';
+            
+            toast.className = `p-4 rounded-xl border shadow-xl text-xs font-semibold flex items-center gap-3 animate-fade-in ${bgClass}`;
+            toast.innerHTML = `<span>${message}</span>`;
             container.appendChild(toast);
-            setTimeout(() => toast.remove(), 4000);
+            setTimeout(() => { toast.remove(); }, 3500);
         }
 
-        function escapeHtml(str) {
-            if (!str) return '';
-            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, '&#039;');
-        }
+        function openModal(modalId) { document.getElementById(modalId).classList.remove('hidden'); }
+        function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
     </script>
 </body>
 </html>
