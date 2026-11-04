@@ -343,6 +343,28 @@
         </div>
     </div>
 
+    <!-- MODAL ELIMINAR INSUMO INTEGRADO -->
+    <div id="deleteModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-neutral-900 rounded-2xl shadow-2xl max-w-md w-full border border-neutral-800 overflow-hidden flex flex-col">
+            <div class="bg-black text-white p-5 flex justify-between items-center border-b border-neutral-800">
+                <h3 class="font-bold text-lg flex items-center gap-2 text-brand-500"><i class="fa-solid fa-triangle-exclamation"></i> Eliminar Insumo</h3>
+                <button onclick="closeModal('deleteModal')" class="text-neutral-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="deleteForm" onsubmit="confirmDelete(event)" class="p-6 space-y-4">
+                <input type="hidden" id="deleteIndex">
+                <p class="text-sm text-neutral-300">Estás a punto de eliminar permanentemente este insumo del inventario y de la nube. Ingresa tu PIN de seguridad para confirmar:</p>
+                <div>
+                    <label class="block text-xs font-bold text-brand-400 mb-1">PIN de Seguridad (1508) *</label>
+                    <input type="password" id="deletePinCode" maxlength="8" required placeholder="••••" class="w-full bg-neutral-950 border border-brand-700 rounded-xl p-3 text-center text-xl font-black text-white tracking-widest focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div class="pt-4 border-t border-neutral-800 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('deleteModal')" class="px-5 py-2.5 bg-neutral-800 text-neutral-300 rounded-xl text-sm font-semibold">Cancelar</button>
+                    <button type="submit" class="px-6 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-bold shadow-lg">Sí, Eliminar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL MOVIMIENTO CON PIN -->
     <div id="movementModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-neutral-900 rounded-2xl shadow-2xl max-w-lg w-full border border-neutral-800 overflow-hidden flex flex-col">
@@ -386,7 +408,7 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT CON MODAL DE EDICIÓN COMPLETO -->
+    <!-- JAVASCRIPT CON MODALES INTEGRADOS -->
     <script>
         const API_URL = "https://app-dconfort-default-rtdb.asia-southeast1.firebasedatabase.app/inventory.json";
 
@@ -400,7 +422,7 @@
             syncWithCloud();
         };
 
-        // --- ABRIR MODAL DE EDICIÓN CON LOS DATOS ACTUALES ---
+        // --- ABRIR MODAL DE EDICIÓN ---
         function openEditModal(index) {
             const item = inventory[index];
             document.getElementById('editIndex').value = index;
@@ -411,11 +433,11 @@
             document.getElementById('editMin').value = item['STOCK (MINIMO)'] || 0;
             document.getElementById('editUnit').value = item.UNIDAD || '';
             document.getElementById('editLoc').value = item.UBICACION || '';
-            document.getElementById('editPinCode').value = ''; // Limpiar el PIN por seguridad
+            document.getElementById('editPinCode').value = '';
             openModal('editModal');
         }
 
-        // --- GUARDAR CAMBIOS EDITADOS DESDE EL MODAL ---
+        // --- GUARDAR CAMBIOS EDITADOS ---
         async function saveEditedItem(event) {
             event.preventDefault();
             const pin = document.getElementById('editPinCode').value;
@@ -442,20 +464,29 @@
             showToast("¡Insumo actualizado exitosamente!", "success");
         }
 
-        // --- FUNCIÓN PARA ELIMINAR CON PIN ---
-        async function deleteItem(index) {
-            const pin = prompt("Ingresa el PIN de seguridad (1508) para eliminar este insumo:");
+        // --- ABRIR MODAL DE ELIMINACIÓN ---
+        function openDeleteModal(index) {
+            document.getElementById('deleteIndex').value = index;
+            document.getElementById('deletePinCode').value = '';
+            openModal('deleteModal');
+        }
+
+        // --- CONFIRMAR ELIMINACIÓN CON PIN ---
+        async function confirmDelete(event) {
+            event.preventDefault();
+            const pin = document.getElementById('deletePinCode').value;
             if (pin !== SECURITY_PIN) {
                 showToast("PIN incorrecto. Operación cancelada.", "error");
                 return;
             }
 
-            if (confirm("¿Estás seguro de que deseas eliminar este insumo del inventario?")) {
-                inventory.splice(index, 1);
-                await saveCloudInventory();
-                renderAll();
-                showToast("Insumo eliminado exitosamente.", "success");
-            }
+            const index = document.getElementById('deleteIndex').value;
+            inventory.splice(index, 1);
+            
+            await saveCloudInventory();
+            renderAll();
+            closeModal('deleteModal');
+            showToast("Insumo eliminado exitosamente.", "success");
         }
 
         // --- NUEVO INSUMO ---
@@ -569,7 +600,7 @@
                     <td class="p-4 text-neutral-400 text-xs"><i class="fa-solid fa-location-dot text-brand-500 mr-1"></i>${item.UBICACION || ''}</td>
                     <td class="p-4 text-center whitespace-nowrap">
                         <button onclick="openEditModal(${index})" class="px-2 py-1.5 text-yellow-400 bg-yellow-950/40 border border-yellow-800/60 rounded-lg text-xs font-bold mr-1 hover:bg-yellow-900 transition" title="Editar Insumo">✏️ Editar</button>
-                        <button onclick="deleteItem(${index})" class="px-2 py-1.5 text-brand-400 bg-brand-950/40 border border-brand-800/60 rounded-lg text-xs font-bold mr-1 hover:bg-brand-900 transition" title="Eliminar Insumo">🗑️ Borrar</button>
+                        <button onclick="openDeleteModal(${index})" class="px-2 py-1.5 text-brand-400 bg-brand-950/40 border border-brand-800/60 rounded-lg text-xs font-bold mr-1 hover:bg-brand-900 transition" title="Eliminar Insumo">🗑️ Borrar</button>
                         <button onclick="quickMovement('${index}', 'IN')" class="px-2 py-1.5 text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 rounded-lg text-xs font-bold mr-1 hover:bg-emerald-900 transition">+ Entrar</button>
                         <button onclick="quickMovement('${index}', 'OUT')" class="px-2 py-1.5 text-brand-400 bg-brand-950/40 border border-brand-800/60 rounded-lg text-xs font-bold hover:bg-brand-900 transition">- Salir</button>
                     </td>
