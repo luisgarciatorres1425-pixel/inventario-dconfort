@@ -340,6 +340,46 @@
             syncWithCloud();
         };
 
+        // --- NUEVA FUNCIÓN PARA ELIMINAR ---
+async function deleteItem(index) {
+    const pin = prompt("Ingresa el PIN de seguridad (1508) para eliminar este insumo:");
+    if (pin !== "1508") {
+        showToast("PIN incorrecto. Operación cancelada.", "error");
+        return;
+    }
+
+    if (confirm("¿Estás seguro de que deseas eliminar este insumo del inventario?")) {
+        inventory.splice(index, 1);
+        await saveCloudInventory();
+        renderAll();
+        showToast("Insumo eliminado exitosamente.", "success");
+    }
+}
+
+// --- NUEVA FUNCIÓN PARA EDITAR ---
+async function editItem(index) {
+    const pin = prompt("Ingresa el PIN de seguridad (1508) para editar este insumo:");
+    if (pin !== "1508") {
+        showToast("PIN incorrecto. Operación cancelada.", "error");
+        return;
+    }
+
+    const item = inventory[index];
+    
+    const nuevoNombre = prompt("Editar nombre del insumo:", item.nombre || item.name || "");
+    if (nuevoNombre === null) return;
+
+    const nuevaCantidad = prompt("Editar cantidad:", item.cantidad || item.quantity || 0);
+    if (nuevaCantidad === null) return;
+
+    inventory[index].nombre = nuevoNombre;
+    inventory[index].cantidad = nuevaCantidad;
+
+    await saveCloudInventory();
+    renderAll();
+    showToast("¡Insumo actualizado exitosamente!", "success");
+}
+
         async function syncWithCloud() {
             const icon = document.getElementById('syncIcon');
             if (icon) icon.classList.add('fa-spin');
