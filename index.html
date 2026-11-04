@@ -282,6 +282,67 @@
         </div>
     </div>
 
+    <!-- MODAL EDITAR INSUMO INTEGRADO -->
+    <div id="editModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-neutral-900 rounded-2xl shadow-2xl max-w-lg w-full border border-neutral-800 overflow-hidden flex flex-col">
+            <div class="bg-black text-white p-5 flex justify-between items-center border-b border-neutral-800">
+                <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-pen-to-square text-yellow-400"></i> Editar Insumo con PIN</h3>
+                <button onclick="closeModal('editModal')" class="text-neutral-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="editForm" onsubmit="saveEditedItem(event)" class="p-6 space-y-4">
+                <input type="hidden" id="editIndex">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-neutral-300 mb-1">Código / Material *</label>
+                        <input type="text" id="editMaterial" required class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white uppercase font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-neutral-300 mb-1">Categoría *</label>
+                        <select id="editCategory" required class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white">
+                            <option value="Tableros y Placas">Tableros y Placas</option>
+                            <option value="Madecantos">Madecantos</option>
+                            <option value="Herrajes y Correderas">Herrajes y Correderas</option>
+                            <option value="Tornillos y Fijaciones">Tornillos y Fijaciones</option>
+                            <option value="Químicos y Barnices">Químicos y Barnices</option>
+                            <option value="Consumibles e Iluminación">Consumibles e Iluminación</option>
+                            <option value="Otros">Otros</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-neutral-300 mb-1">Descripción *</label>
+                    <input type="text" id="editDesc" required class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white">
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-neutral-300 mb-1">Disponible *</label>
+                        <input type="number" id="editDisp" min="0" step="any" required class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-neutral-300 mb-1">Stock Mín. *</label>
+                        <input type="number" id="editMin" min="0" step="any" required class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-neutral-300 mb-1">Unidad *</label>
+                        <input type="text" id="editUnit" required class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-neutral-300 mb-1">Ubicación</label>
+                    <input type="text" id="editLoc" placeholder="Ej: Rack A" class="w-full bg-neutral-950 border border-neutral-700 rounded-xl p-3 text-sm text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-brand-400 mb-1">PIN de Seguridad (1508) *</label>
+                    <input type="password" id="editPinCode" maxlength="8" required placeholder="••••" class="w-full bg-neutral-950 border border-brand-700 rounded-xl p-3 text-center text-xl font-black text-white tracking-widest focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div class="pt-4 border-t border-neutral-800 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('editModal')" class="px-5 py-2.5 bg-neutral-800 text-neutral-300 rounded-xl text-sm font-semibold">Cancelar</button>
+                    <button type="submit" class="px-6 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-bold shadow-lg">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL MOVIMIENTO CON PIN -->
     <div id="movementModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-neutral-900 rounded-2xl shadow-2xl max-w-lg w-full border border-neutral-800 overflow-hidden flex flex-col">
@@ -325,7 +386,7 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT CON SINCRONIZACIÓN BIDIRECCIONAL -->
+    <!-- JAVASCRIPT CON MODAL DE EDICIÓN COMPLETO -->
     <script>
         const API_URL = "https://app-dconfort-default-rtdb.asia-southeast1.firebasedatabase.app/inventory.json";
 
@@ -339,7 +400,49 @@
             syncWithCloud();
         };
 
-        // --- FUNCIÓN PARA ELIMINAR CON PIN 1508 ---
+        // --- ABRIR MODAL DE EDICIÓN CON LOS DATOS ACTUALES ---
+        function openEditModal(index) {
+            const item = inventory[index];
+            document.getElementById('editIndex').value = index;
+            document.getElementById('editMaterial').value = item.MATERIAL || item.nombre || '';
+            document.getElementById('editCategory').value = item.CATEGORIA || 'Tableros y Placas';
+            document.getElementById('editDesc').value = item.DESCRIPCION || '';
+            document.getElementById('editDisp').value = item.DISPONIBLE || item.cantidad || 0;
+            document.getElementById('editMin').value = item['STOCK (MINIMO)'] || 0;
+            document.getElementById('editUnit').value = item.UNIDAD || '';
+            document.getElementById('editLoc').value = item.UBICACION || '';
+            document.getElementById('editPinCode').value = ''; // Limpiar el PIN por seguridad
+            openModal('editModal');
+        }
+
+        // --- GUARDAR CAMBIOS EDITADOS DESDE EL MODAL ---
+        async function saveEditedItem(event) {
+            event.preventDefault();
+            const pin = document.getElementById('editPinCode').value;
+            if (pin !== SECURITY_PIN) {
+                showToast("PIN incorrecto. No autorizado.", "error");
+                return;
+            }
+
+            const index = document.getElementById('editIndex').value;
+            
+            inventory[index] = {
+                MATERIAL: document.getElementById('editMaterial').value.toUpperCase(),
+                CATEGORIA: document.getElementById('editCategory').value,
+                DESCRIPCION: document.getElementById('editDesc').value,
+                DISPONIBLE: Number(document.getElementById('editDisp').value),
+                'STOCK (MINIMO)': Number(document.getElementById('editMin').value),
+                UNIDAD: document.getElementById('editUnit').value,
+                UBICACION: document.getElementById('editLoc').value
+            };
+
+            await saveCloudInventory();
+            renderAll();
+            closeModal('editModal');
+            showToast("¡Insumo actualizado exitosamente!", "success");
+        }
+
+        // --- FUNCIÓN PARA ELIMINAR CON PIN ---
         async function deleteItem(index) {
             const pin = prompt("Ingresa el PIN de seguridad (1508) para eliminar este insumo:");
             if (pin !== SECURITY_PIN) {
@@ -355,38 +458,25 @@
             }
         }
 
-        // --- FUNCIÓN PARA EDITAR CON PIN 1508 ---
-        async function editItem(index) {
-            const pin = prompt("Ingresa el PIN de seguridad (1508) para editar este insumo:");
-            if (pin !== SECURITY_PIN) {
-                showToast("PIN incorrecto. Operación cancelada.", "error");
-                return;
-            }
+        // --- NUEVO INSUMO ---
+        async function saveNewItem(event) {
+            event.preventDefault();
+            const newItem = {
+                MATERIAL: document.getElementById('newMaterial').value.toUpperCase(),
+                CATEGORIA: document.getElementById('newCategory').value,
+                DESCRIPCION: document.getElementById('newDesc').value,
+                DISPONIBLE: Number(document.getElementById('newDisp').value),
+                'STOCK (MINIMO)': Number(document.getElementById('newMin').value),
+                UNIDAD: document.getElementById('newUnit').value,
+                UBICACION: document.getElementById('newLoc').value
+            };
 
-            const item = inventory[index];
-            
-            const nuevoNombre = prompt("Editar nombre / código del insumo:", item.MATERIAL || item.nombre || "");
-            if (nuevoNombre === null) return;
-
-            const nuevaDesc = prompt("Editar descripción:", item.DESCRIPCION || item.descripcion || "");
-            if (nuevaDesc === null) return;
-
-            const nuevaCantidad = prompt("Editar cantidad disponible:", item.DISPONIBLE || item.cantidad || 0);
-            if (nuevaCantidad === null) return;
-
-            // Actualizar campos preservando la estructura del objeto
-            if (inventory[index].MATERIAL !== undefined) {
-                inventory[index].MATERIAL = nuevoNombre;
-                inventory[index].DESCRIPCION = nuevaDesc;
-                inventory[index].DISPONIBLE = nuevaCantidad;
-            } else {
-                inventory[index].nombre = nuevoNombre;
-                inventory[index].cantidad = nuevaCantidad;
-            }
-
+            inventory.push(newItem);
             await saveCloudInventory();
             renderAll();
-            showToast("¡Insumo actualizado exitosamente!", "success");
+            closeModal('itemModal');
+            document.getElementById('itemForm').reset();
+            showToast("¡Insumo creado y sincronizado!", "success");
         }
 
         async function syncWithCloud() {
@@ -402,18 +492,14 @@
                     inventory = data;
                     showToast('¡Sincronizado con la nube exitosamente!', 'success');
                 } else {
-                    loadFallback();
+                    inventory = [];
                 }
             } catch (error) {
                 showToast('Error al conectar con la nube. Modo local activo.', 'error');
-                loadFallback();
+                inventory = [];
             }
             if (icon) icon.classList.remove('fa-spin');
             renderAll();
-        }
-
-        function loadFallback() {
-            inventory = [];
         }
 
         async function saveCloudInventory() {
@@ -465,7 +551,6 @@
             document.getElementById('kpi-low-stock').textContent = inventory.filter(i => Number(i.DISPONIBLE || 0) <= Number(i['STOCK (MINIMO)'] || 0)).length;
         }
 
-        // --- TABLA DE INVENTARIO CON BOTONES DE EDITAR Y ELIMINAR ---
         function renderInventoryTable() {
             const tbody = document.getElementById('inventoryTableBody');
             const search = document.getElementById('searchInput').value.toLowerCase();
@@ -483,7 +568,7 @@
                     <td class="p-4 text-neutral-400 text-xs">${item.UNIDAD || ''}</td>
                     <td class="p-4 text-neutral-400 text-xs"><i class="fa-solid fa-location-dot text-brand-500 mr-1"></i>${item.UBICACION || ''}</td>
                     <td class="p-4 text-center whitespace-nowrap">
-                        <button onclick="editItem(${index})" class="px-2 py-1.5 text-yellow-400 bg-yellow-950/40 border border-yellow-800/60 rounded-lg text-xs font-bold mr-1 hover:bg-yellow-900 transition" title="Editar Insumo">✏️ Editar</button>
+                        <button onclick="openEditModal(${index})" class="px-2 py-1.5 text-yellow-400 bg-yellow-950/40 border border-yellow-800/60 rounded-lg text-xs font-bold mr-1 hover:bg-yellow-900 transition" title="Editar Insumo">✏️ Editar</button>
                         <button onclick="deleteItem(${index})" class="px-2 py-1.5 text-brand-400 bg-brand-950/40 border border-brand-800/60 rounded-lg text-xs font-bold mr-1 hover:bg-brand-900 transition" title="Eliminar Insumo">🗑️ Borrar</button>
                         <button onclick="quickMovement('${index}', 'IN')" class="px-2 py-1.5 text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 rounded-lg text-xs font-bold mr-1 hover:bg-emerald-900 transition">+ Entrar</button>
                         <button onclick="quickMovement('${index}', 'OUT')" class="px-2 py-1.5 text-brand-400 bg-brand-950/40 border border-brand-800/60 rounded-lg text-xs font-bold hover:bg-brand-900 transition">- Salir</button>
@@ -491,6 +576,84 @@
                 `;
                 tbody.appendChild(tr);
             });
+        }
+
+        function populateMaterialSelect() {
+            const select = document.getElementById('movMaterial');
+            if(!select) return;
+            select.innerHTML = '';
+            inventory.forEach((item) => {
+                const opt = document.createElement('option');
+                opt.value = item.MATERIAL || item.nombre;
+                opt.textContent = `${item.MATERIAL || item.nombre} - ${item.DESCRIPCION || ''}`;
+                select.appendChild(opt);
+            });
+        }
+
+        function setMovementType(type) {
+            document.getElementById('movType').value = type;
+            const btnIn = document.getElementById('btnTypeIn');
+            const btnOut = document.getElementById('btnTypeOut');
+            if (type === 'IN') {
+                btnIn.className = "py-2.5 text-xs font-bold rounded-lg bg-emerald-600 text-white";
+                btnOut.className = "py-2.5 text-xs font-bold rounded-lg text-neutral-400";
+            } else {
+                btnIn.className = "py-2.5 text-xs font-bold rounded-lg text-neutral-400";
+                btnOut.className = "py-2.5 text-xs font-bold rounded-lg bg-brand-600 text-white";
+            }
+        }
+
+        async function saveMovement(event) {
+            event.preventDefault();
+            const pin = document.getElementById('movPinCode').value;
+            if (pin !== SECURITY_PIN) {
+                showToast("PIN de seguridad incorrecto.", "error");
+                return;
+            }
+
+            const matCode = document.getElementById('movMaterial').value;
+            const qty = Number(document.getElementById('movQuantity').value);
+            const type = document.getElementById('movType').value;
+            const resp = document.getElementById('movResponsible').value;
+            const reason = document.getElementById('movReason').value;
+
+            const item = inventory.find(i => (i.MATERIAL || i.nombre) === matCode);
+            if (!item) {
+                showToast("Material no encontrado.", "error");
+                return;
+            }
+
+            let disp = Number(item.DISPONIBLE || item.cantidad || 0);
+            if (type === 'OUT') {
+                if (disp < qty) {
+                    showToast("Stock insuficiente para realizar la salida.", "error");
+                    return;
+                }
+                disp -= qty;
+            } else {
+                disp += qty;
+            }
+
+            if (item.DISPONIBLE !== undefined) {
+                item.DISPONIBLE = disp;
+            } else {
+                item.cantidad = disp;
+            }
+
+            movements.unshift({
+                fecha: new Date().toLocaleString(),
+                tipo: type,
+                material: matCode,
+                cantidad: qty,
+                responsable: resp,
+                motivo: reason
+            });
+
+            await saveCloudInventory();
+            renderAll();
+            closeModal('movementModal');
+            document.getElementById('movementForm').reset();
+            showToast("¡Movimiento registrado con éxito!", "success");
         }
 
         function renderCharts() {
